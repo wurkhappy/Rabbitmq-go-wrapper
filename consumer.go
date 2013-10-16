@@ -10,7 +10,6 @@ type Consumer struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	tag     string
-	Done    chan error
 }
 
 func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName, ctag string) (*Consumer, error) {
@@ -18,7 +17,7 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 		conn:    connection,
 		channel: nil,
 		tag:     ctag,
-		Done:    make(chan error),
+		// Done:    make(chan error),
 	}
 
 	var err error
@@ -58,7 +57,7 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 	return c, nil
 }
 
-func (c *Consumer) Shutdown() error {
+func (c *Consumer) Shutdown() error{
 	// will close() the deliveries channel
 	if err := c.channel.Cancel(c.tag, true); err != nil {
 		return fmt.Errorf("Consumer cancel failed: %s", err)
@@ -69,9 +68,9 @@ func (c *Consumer) Shutdown() error {
 	}
 
 	defer log.Printf("AMQP shutdown OK")
-
+	return nil
 	// wait for handle() to exit
-	return <-c.Done
+	// return <-c.Done
 }
 
 func (c *Consumer) bindToQueue(exchange, queueName, key string) {
