@@ -1,16 +1,16 @@
 package rbtmq
 
 import (
-"fmt"
-"github.com/streadway/amqp"
-"log"
+	"fmt"
+	"github.com/streadway/amqp"
+	"log"
 )
 
 type Consumer struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	tag     string
-	done    chan error
+	Done    chan error
 }
 
 func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName, ctag string) (*Consumer, error) {
@@ -18,7 +18,7 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 		conn:    connection,
 		channel: nil,
 		tag:     ctag,
-		done:    make(chan error),
+		Done:    make(chan error),
 	}
 
 	var err error
@@ -38,7 +38,7 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 		false,        // internal
 		false,        // noWait
 		nil,          // arguments
-		); err != nil {
+	); err != nil {
 		return nil, fmt.Errorf("Exchange Declare: %s", err)
 	}
 
@@ -50,7 +50,7 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 		false,     // exclusive
 		false,     // noWait
 		nil,       // arguments
-		)
+	)
 	if err != nil {
 		return nil, fmt.Errorf("Queue Declare: %s", err)
 	}
@@ -71,19 +71,35 @@ func (c *Consumer) Shutdown() error {
 	defer log.Printf("AMQP shutdown OK")
 
 	// wait for handle() to exit
-	return <-c.done
+	return <-c.Done
 }
 
 func (c *Consumer) bindToQueue(exchange, queueName, key string) {
 	if err := c.channel.QueueBind(
 		queueName, // name of the queue
-		key,        // bindingKey
-		exchange,   // sourceExchange
-		false,      // noWait
-		nil,        // arguments
-		); err != nil {
+		key,       // bindingKey
+		exchange,  // sourceExchange
+		false,     // noWait
+		nil,       // arguments
+	); err != nil {
 		fmt.Errorf("Queue Bind: %s", err)
 	}
 
+}
 
+func (c *Consumer) Consume(queue string) <-chan amqp.Delivery {
+	deliveries, err := c.channel.Consume(
+		queue, // name
+		c.tag,  // consumerTag,
+		false,  // noAck
+		false,  // exclusive
+		false,  // noLocal
+		false,  // noWait
+		nil,    // arguments
+	)
+	if err != nil {
+		fmt.Errorf("Deliveries: %s", err)
+		return nil
+	}
+	return deliveries
 }

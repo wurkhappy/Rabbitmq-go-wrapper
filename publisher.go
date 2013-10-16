@@ -13,7 +13,7 @@ type Publisher struct {
 	exchange   string
 }
 
-func NewPublisher(connection *amqp.Connection, exchange string, exchangeType string, routingKey string) (*Publisher, error) {
+func NewPublisher(connection *amqp.Connection, exchange string, exchangeType string, queue string, routingKey string) (*Publisher, error) {
 	publisher := new(Publisher)
 	publisher.conn = connection
 
@@ -33,6 +33,27 @@ func NewPublisher(connection *amqp.Connection, exchange string, exchangeType str
 		nil,          // arguments
 	); err != nil {
 		return nil, fmt.Errorf("Exchange Declare: %s", err)
+	}
+
+	_, err = channel.QueueDeclare(
+		exchange, // name of the queue
+		true,           // durable
+		false,          // delete when usused
+		false,          // exclusive
+		false,          // noWait
+		nil,            // arguments
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Queue Declare: %s", err)
+	}
+	if err := channel.QueueBind(
+		queue, // name of the queue
+		routingKey,     // bindingKey
+		exchange,       // sourceExchange
+		false,          // noWait
+		nil,            // arguments
+	); err != nil {
+		return nil, fmt.Errorf("Queue Bind: %s", err)
 	}
 	publisher.exchange = exchange
 	publisher.routingKey = routingKey
