@@ -57,21 +57,21 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 	return c, nil
 }
 
-func (c *Consumer) Shutdown() error{
-	// will close() the deliveries channel
-	if err := c.channel.Cancel(c.tag, true); err != nil {
-		return fmt.Errorf("Consumer cancel failed: %s", err)
-	}
+// func (c *Consumer) Shutdown() error{
+// 	// will close() the deliveries channel
+// 	if err := c.channel.Cancel(c.tag, true); err != nil {
+// 		return fmt.Errorf("Consumer cancel failed: %s", err)
+// 	}
 
-	if err := c.conn.Close(); err != nil {
-		return fmt.Errorf("AMQP connection close error: %s", err)
-	}
+// 	if err := c.conn.Close(); err != nil {
+// 		return fmt.Errorf("AMQP connection close error: %s", err)
+// 	}
 
-	defer log.Printf("AMQP shutdown OK")
-	return nil
-	// wait for handle() to exit
-	// return <-c.Done
-}
+// 	defer log.Printf("AMQP shutdown OK")
+// 	return nil
+// 	// wait for handle() to exit
+// 	// return <-c.Done
+// }
 
 func (c *Consumer) bindToQueue(exchange, queueName, key string) {
 	if err := c.channel.QueueBind(
