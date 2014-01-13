@@ -7,10 +7,12 @@ import (
 )
 
 type Publisher struct {
-	conn       *amqp.Connection
-	channel    *amqp.Channel
-	routingKey string
-	exchange   string
+	conn         *amqp.Connection
+	channel      *amqp.Channel
+	routingKey   string
+	exchange     string
+	exchangeType string
+	queue        string
 }
 
 func NewPublisher(connection *amqp.Connection, exchange string, exchangeType string, queue string, routingKey string) (*Publisher, error) {
@@ -37,31 +39,37 @@ func NewPublisher(connection *amqp.Connection, exchange string, exchangeType str
 
 	_, err = channel.QueueDeclare(
 		exchange, // name of the queue
-		true,           // durable
-		false,          // delete when usused
-		false,          // exclusive
-		false,          // noWait
-		nil,            // arguments
+		true,     // durable
+		false,    // delete when usused
+		false,    // exclusive
+		false,    // noWait
+		nil,      // arguments
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Queue Declare: %s", err)
 	}
 	if err := channel.QueueBind(
-		queue, // name of the queue
-		routingKey,     // bindingKey
-		exchange,       // sourceExchange
-		false,          // noWait
-		nil,            // arguments
+		queue,      // name of the queue
+		routingKey, // bindingKey
+		exchange,   // sourceExchange
+		false,      // noWait
+		nil,        // arguments
 	); err != nil {
 		return nil, fmt.Errorf("Queue Bind: %s", err)
 	}
 	publisher.exchange = exchange
 	publisher.routingKey = routingKey
+	publisher.exchangeType = exchangeType
+	publisher.queue = queue
 
 	return publisher, nil
 }
 
 func (p *Publisher) Publish(body []byte, reliable bool) error {
+	if p == nil || p.conn == nil || p.channel == nil {
+		fmt.Println("No connection or channel")
+		return fmt.Errorf("No connection or channel")
+	}
 	if reliable {
 		if err := p.channel.Confirm(false); err != nil {
 			return fmt.Errorf("Channel could not be put into confirm mode: %s", err)

@@ -22,13 +22,13 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 
 	var err error
 
-	log.Printf("got Connection, getting Channel")
+	log.Printf("got Connection, getting channel")
 	c.channel, err = c.conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("Channel: %s", err)
+		return nil, fmt.Errorf("channel: %s", err)
 	}
 
-	log.Printf("got Channel, declaring Exchange (%q)", exchange)
+	log.Printf("got channel, declaring Exchange (%q)", exchange)
 	if err = c.channel.ExchangeDeclare(
 		exchange,     // name of the exchange
 		exchangeType, // type
@@ -89,12 +89,12 @@ func (c *Consumer) bindToQueue(exchange, queueName, key string) {
 func (c *Consumer) Consume(queue string) <-chan amqp.Delivery {
 	deliveries, err := c.channel.Consume(
 		queue, // name
-		c.tag,  // consumerTag,
-		false,  // noAck
-		false,  // exclusive
-		false,  // noLocal
-		false,  // noWait
-		nil,    // arguments
+		c.tag, // consumerTag,
+		false, // noAck
+		false, // exclusive
+		false, // noLocal
+		false, // noWait
+		nil,   // arguments
 	)
 	if err != nil {
 		fmt.Errorf("Deliveries: %s", err)
