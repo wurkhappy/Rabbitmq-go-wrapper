@@ -28,6 +28,30 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 		return nil, fmt.Errorf("channel: %s", err)
 	}
 
+	if err = c.channel.ExchangeDeclare(
+		"dead_letter", // name of the exchange
+		"topic",       // type
+		true,          // durable
+		false,         // delete when complete
+		false,         // internal
+		false,         // noWait
+		nil,           // arguments
+	); err != nil {
+		return nil, fmt.Errorf("Exchange Declare: %s", err)
+	}
+	_, err = c.channel.QueueDeclare(
+		"dead_letter", // name of the queue
+		true,          // durable
+		false,         // delete when usused
+		false,         // exclusive
+		false,         // noWait
+		nil,           // arguments
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Queue Declare: %s", err)
+	}
+	bindToQueue("dead_letter", "dead_letter", "*")
+
 	log.Printf("got channel, declaring Exchange (%q)", exchange)
 	if err = c.channel.ExchangeDeclare(
 		exchange,     // name of the exchange
@@ -42,17 +66,21 @@ func NewConsumer(connection *amqp.Connection, exchange, exchangeType, queueName,
 	}
 
 	log.Printf("declared Exchange, declaring Queue %q", queueName)
+	queueArgs := amqp.Table{
+		"x-dead-letter-exchange": "dead_letter",
+	}
 	_, err = c.channel.QueueDeclare(
 		queueName, // name of the queue
 		true,      // durable
 		false,     // delete when usused
 		false,     // exclusive
 		false,     // noWait
-		nil,       // arguments
+		queueArgs, // arguments
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Queue Declare: %s", err)
 	}
+	bindToQueue(exchange, queueName, "*")
 
 	return c, nil
 }
